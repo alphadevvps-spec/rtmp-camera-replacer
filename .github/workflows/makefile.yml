@@ -31,19 +31,50 @@ jobs:
         sudo cp -r sdks-master/iPhoneOS16.5.sdk ~/theos/sdks/
         sudo chown -R $USER:$USER ~/theos/sdks
         
-        # Install toolchain using system clang
-        sudo apt-get install -y clang llvm
+        # Install proper cross-compilation toolchain
+        sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+        
+        # Create proper toolchain directory structure
         mkdir -p ~/theos/toolchain/linux/iphone/bin
-        ln -sf /usr/bin/clang ~/theos/toolchain/linux/iphone/bin/clang
-        ln -sf /usr/bin/clang++ ~/theos/toolchain/linux/iphone/bin/clang++
-        ln -sf /usr/bin/ld ~/theos/toolchain/linux/iphone/bin/ld
-        ln -sf /usr/bin/ar ~/theos/toolchain/linux/iphone/bin/ar
-        ln -sf /usr/bin/ranlib ~/theos/toolchain/linux/iphone/bin/ranlib
-        ln -sf /usr/bin/strip ~/theos/toolchain/linux/iphone/bin/strip
-        ln -sf /usr/bin/nm ~/theos/toolchain/linux/iphone/bin/nm
-        ln -sf /usr/bin/otool ~/theos/toolchain/linux/iphone/bin/otool
-        ln -sf /usr/bin/install_name_tool ~/theos/toolchain/linux/iphone/bin/install_name_tool
-        ln -sf /usr/bin/codesign_allocate ~/theos/toolchain/linux/iphone/bin/codesign_allocate
+        
+        # Create wrapper scripts for cross-compilation
+        cat > ~/theos/toolchain/linux/iphone/bin/clang << 'EOF'
+        #!/bin/bash
+        exec /usr/bin/clang -target aarch64-apple-ios15.0 "$@"
+        EOF
+        
+        cat > ~/theos/toolchain/linux/iphone/bin/clang++ << 'EOF'
+        #!/bin/bash
+        exec /usr/bin/clang++ -target aarch64-apple-ios15.0 "$@"
+        EOF
+        
+        cat > ~/theos/toolchain/linux/iphone/bin/ld << 'EOF'
+        #!/bin/bash
+        exec /usr/bin/aarch64-linux-gnu-ld "$@"
+        EOF
+        
+        cat > ~/theos/toolchain/linux/iphone/bin/ar << 'EOF'
+        #!/bin/bash
+        exec /usr/bin/aarch64-linux-gnu-ar "$@"
+        EOF
+        
+        cat > ~/theos/toolchain/linux/iphone/bin/ranlib << 'EOF'
+        #!/bin/bash
+        exec /usr/bin/aarch64-linux-gnu-ranlib "$@"
+        EOF
+        
+        cat > ~/theos/toolchain/linux/iphone/bin/strip << 'EOF'
+        #!/bin/bash
+        exec /usr/bin/aarch64-linux-gnu-strip "$@"
+        EOF
+        
+        cat > ~/theos/toolchain/linux/iphone/bin/nm << 'EOF'
+        #!/bin/bash
+        exec /usr/bin/aarch64-linux-gnu-nm "$@"
+        EOF
+        
+        # Make all scripts executable
+        chmod +x ~/theos/toolchain/linux/iphone/bin/*
         
         # Set environment variables
         echo "THEOS=~/theos" >> $GITHUB_ENV
