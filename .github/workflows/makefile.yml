@@ -15,19 +15,34 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Setup Theos
+        - name: Setup Theos
       run: |
+        # Install dependencies
         sudo apt-get update
         sudo apt-get install -y git curl wget unzip build-essential
+        
+        # Install Theos
         git clone --recursive https://github.com/theos/theos.git ~/theos
+        
+        # Install iOS SDKs
         cd /tmp
         wget https://github.com/theos/sdks/archive/refs/heads/master.zip
         unzip master.zip
         sudo cp -r sdks-master/iPhoneOS16.5.sdk ~/theos/sdks/
         sudo chown -R $USER:$USER ~/theos/sdks
-              # Install toolchain
-        cd ~/theos
-        sudo ./install.sh
+        
+        # Install toolchain manually
+        mkdir -p ~/theos/toolchain/linux/iphone/bin
+        cd ~/theos/toolchain/linux/iphone/bin
+        
+        # Download and install clang
+        wget https://github.com/theos/toolchain/archive/refs/heads/master.zip
+        unzip master.zip
+        sudo cp -r toolchain-master/linux/iphone/* ~/theos/toolchain/
+        sudo chown -R $USER:$USER ~/theos/toolchain
+        sudo chmod +x ~/theos/toolchain/linux/iphone/bin/*
+        
+        # Set environment variables
         echo "THEOS=~/theos" >> $GITHUB_ENV
         echo "PATH=~/theos/bin:$PATH" >> $GITHUB_ENV
         
