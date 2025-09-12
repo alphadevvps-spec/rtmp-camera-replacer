@@ -151,4 +151,22 @@ jobs:
         echo "THEOS=~/theos" >> $GITHUB_ENV
         echo "PATH=~/theos/bin:$PATH" >> $GITHUB_ENV
         
-    - 
+    - name: Build tweak
+      run: |
+        make clean
+        make package
+        echo "=== Looking for .deb files ==="
+        find . -name "*.deb" -type f
+        echo "=== Current directory contents ==="
+        ls -la
+        echo "=== .theos directory contents ==="
+        ls -la .theos/ || echo "No .theos directory"
+        echo "=== packages directory contents ==="
+        ls -la packages/ || echo "No packages directory"
+        
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: tweak-package
+        path: "**/*.deb"
+        if-no-files-found: error
