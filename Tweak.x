@@ -83,42 +83,50 @@
     _volumePressCount = 0;
 }
 
-- (UIWindow *)getKeyWindow {
-    // Use modern iOS 15+ compatible method
-    if (@available(iOS 15.0, *)) {
+- (UIViewController *)getTopViewController {
+    // Use a simpler approach that works across iOS versions
+    UIViewController *topController = nil;
+    
+    // Try to get the key window using connectedScenes (iOS 13+)
+    if (@available(iOS 13.0, *)) {
         NSSet<UIScene *> *connectedScenes = [UIApplication sharedApplication].connectedScenes;
         for (UIScene *scene in connectedScenes) {
             if ([scene isKindOfClass:[UIWindowScene class]]) {
                 UIWindowScene *windowScene = (UIWindowScene *)scene;
                 for (UIWindow *window in windowScene.windows) {
                     if (window.isKeyWindow) {
-                        return window;
+                        topController = window.rootViewController;
+                        break;
                     }
                 }
-            }
-        }
-    } else {
-        // Fallback for older iOS versions
-        for (UIWindow *window in [UIApplication sharedApplication].windows) {
-            if (window.isKeyWindow) {
-                return window;
+                if (topController) break;
             }
         }
     }
-    return nil;
+    
+    // If we didn't find a controller, try the first available window
+    if (!topController) {
+        // This is a fallback that should work
+        NSArray *windows = [[UIApplication sharedApplication] valueForKey:@"windows"];
+        for (UIWindow *window in windows) {
+            if (window.isKeyWindow) {
+                topController = window.rootViewController;
+                break;
+            }
+        }
+    }
+    
+    // Find the topmost presented view controller
+    while (topController.presentedViewController) {
+        topController = topController.presentedViewController;
+    }
+    
+    return topController;
 }
 
 - (void)showRTMPDialog {
-    UIWindow *keyWindow = [self getKeyWindow];
-    if (!keyWindow) return;
-    
-    UIViewController *rootViewController = keyWindow.rootViewController;
-    UIViewController *topViewController = rootViewController;
-    
-    // Find the topmost view controller
-    while (topViewController.presentedViewController) {
-        topViewController = topViewController.presentedViewController;
-    }
+    UIViewController *topViewController = [self getTopViewController];
+    if (!topViewController) return;
     
     // Create RTMP URL input dialog
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"RTMP Camera Replacer"
@@ -174,15 +182,8 @@
                                                      handler:nil];
     [statusAlert addAction:okAction];
     
-    UIWindow *keyWindow = [self getKeyWindow];
-    if (keyWindow) {
-        UIViewController *rootViewController = keyWindow.rootViewController;
-        UIViewController *topViewController = rootViewController;
-        
-        while (topViewController.presentedViewController) {
-            topViewController = topViewController.presentedViewController;
-        }
-        
+    UIViewController *topViewController = [self getTopViewController];
+    if (topViewController) {
         [topViewController presentViewController:statusAlert animated:YES completion:nil];
     }
 }
