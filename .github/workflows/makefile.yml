@@ -40,7 +40,6 @@ jobs:
         # Create custom linker script using LLD
         cat > ~/theos/toolchain/linux/iphone/bin/ld << 'EOF'
         #!/bin/bash
-        # Use LLD linker which supports more targets
         exec /usr/bin/ld.lld "$@"
         EOF
         
@@ -56,7 +55,7 @@ jobs:
         EOF
         
         # Create other toolchain scripts
-        for tool in ar ranlib strip nm; do
+        for tool in ar ranlib strip nm lipo; do
           cat > ~/theos/toolchain/linux/iphone/bin/$tool << EOF
         #!/bin/bash
         exec /usr/bin/$tool "\$@"
