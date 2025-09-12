@@ -15,6 +15,22 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
+    - name: Fix line endings
+      run: |
+        # Install dos2unix to fix line endings
+        sudo apt-get update
+        sudo apt-get install -y dos2unix
+        
+        # Fix line endings in control file
+        if [ -f "control" ]; then
+          dos2unix control
+          echo "Fixed line endings in control file"
+        fi
+        
+        # Fix line endings in all text files
+        find . -name "*.x" -o -name "*.m" -o -name "*.h" -o -name "Makefile" | xargs dos2unix
+        echo "Fixed line endings in source files"
+      
     - name: Setup Theos
       run: |
         # Install dependencies
