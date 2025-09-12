@@ -31,16 +31,19 @@ jobs:
         sudo cp -r sdks-master/iPhoneOS16.5.sdk ~/theos/sdks/
         sudo chown -R $USER:$USER ~/theos/sdks
         
-        # Install toolchain manually
+        # Install toolchain using system clang
+        sudo apt-get install -y clang llvm
         mkdir -p ~/theos/toolchain/linux/iphone/bin
-        cd ~/theos/toolchain/linux/iphone/bin
-        
-        # Download and install clang
-        wget https://github.com/theos/toolchain/archive/refs/heads/master.zip
-        unzip master.zip
-        sudo cp -r toolchain-master/linux/iphone/* ~/theos/toolchain/
-        sudo chown -R $USER:$USER ~/theos/toolchain
-        sudo chmod +x ~/theos/toolchain/linux/iphone/bin/*
+        ln -sf /usr/bin/clang ~/theos/toolchain/linux/iphone/bin/clang
+        ln -sf /usr/bin/clang++ ~/theos/toolchain/linux/iphone/bin/clang++
+        ln -sf /usr/bin/ld ~/theos/toolchain/linux/iphone/bin/ld
+        ln -sf /usr/bin/ar ~/theos/toolchain/linux/iphone/bin/ar
+        ln -sf /usr/bin/ranlib ~/theos/toolchain/linux/iphone/bin/ranlib
+        ln -sf /usr/bin/strip ~/theos/toolchain/linux/iphone/bin/strip
+        ln -sf /usr/bin/nm ~/theos/toolchain/linux/iphone/bin/nm
+        ln -sf /usr/bin/otool ~/theos/toolchain/linux/iphone/bin/otool
+        ln -sf /usr/bin/install_name_tool ~/theos/toolchain/linux/iphone/bin/install_name_tool
+        ln -sf /usr/bin/codesign_allocate ~/theos/toolchain/linux/iphone/bin/codesign_allocate
         
         # Set environment variables
         echo "THEOS=~/theos" >> $GITHUB_ENV
