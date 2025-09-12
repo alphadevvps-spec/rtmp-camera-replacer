@@ -54,7 +54,7 @@ jobs:
         exec /usr/bin/clang++ -target aarch64-apple-ios15.0 -fuse-ld=lld "$@"
         EOF
         
-        # Create improved lipo script that handles file paths correctly
+        # Create improved lipo script that handles directory paths correctly
         cat > ~/theos/toolchain/linux/iphone/bin/lipo << 'EOF'
         #!/bin/bash
         case "$1" in
@@ -95,11 +95,14 @@ jobs:
             ARCH="$2"
             FILE="$3"
             echo "lipo: extracting architecture $ARCH from $FILE"
-            # Create multiple file names to match what makefile expects
-            BASE_NAME="${FILE%.*}"
-            cp "$FILE" "${BASE_NAME}.unsigned"
-            cp "$FILE" "${BASE_NAME}.dylib.b84c5f8a.unsigned"
-            echo "lipo: created ${BASE_NAME}.unsigned and ${BASE_NAME}.dylib.b84c5f8a.unsigned"
+            # Get the directory and base name
+            DIR=$(dirname "$FILE")
+            BASE_NAME=$(basename "$FILE" .dylib)
+            # Create files in the correct directory (one level up from arm64/)
+            PARENT_DIR=$(dirname "$DIR")
+            cp "$FILE" "${PARENT_DIR}/${BASE_NAME}.unsigned"
+            cp "$FILE" "${PARENT_DIR}/${BASE_NAME}.dylib.b84c5f8a.unsigned"
+            echo "lipo: created ${PARENT_DIR}/${BASE_NAME}.unsigned and ${PARENT_DIR}/${BASE_NAME}.dylib.b84c5f8a.unsigned"
             ;;
           *)
             echo "lipo: unsupported operation: $1"
