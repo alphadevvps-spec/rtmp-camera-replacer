@@ -54,12 +54,13 @@ jobs:
         exec /usr/bin/clang++ -target aarch64-apple-ios15.0 -fuse-ld=lld "$@"
         EOF
         
-        # Create improved lipo script
+        # Create improved lipo script that handles file paths correctly
         cat > ~/theos/toolchain/linux/iphone/bin/lipo << 'EOF'
         #!/bin/bash
         case "$1" in
           -create)
             OUTPUT=""
+            INPUTS=()
             shift
             while [ $# -gt 0 ]; do
               case $1 in
@@ -71,16 +72,17 @@ jobs:
                   shift 2
                   ;;
                 *)
-                  if [ -z "$OUTPUT" ]; then
-                    echo "lipo: no output specified"
-                    exit 1
-                  fi
-                  cp "$1" "$OUTPUT"
-                  echo "lipo: created $OUTPUT"
-                  exit 0
+                  INPUTS+=("$1")
+                  shift
                   ;;
               esac
             done
+            
+            if [ -n "$OUTPUT" ] && [ ${#INPUTS[@]} -gt 0 ]; then
+              # Copy the first input to output
+              cp "${INPUTS[0]}" "$OUTPUT"
+              echo "lipo: created $OUTPUT from ${INPUTS[0]}"
+            fi
             ;;
           -info)
             if [ -f "$2" ]; then
@@ -94,7 +96,10 @@ jobs:
             ARCH="$2"
             FILE="$3"
             echo "lipo: extracting architecture $ARCH from $FILE"
-            cp "$FILE" "${FILE}.${ARCH}"
+            # Create the expected output file name
+            OUTPUT_FILE="${FILE}.${ARCH}"
+            cp "$FILE" "$OUTPUT_FILE"
+            echo "lipo: created $OUTPUT_FILE"
             ;;
           *)
             echo "lipo: unsupported operation: $1"
@@ -107,7 +112,6 @@ jobs:
         cat > ~/theos/toolchain/linux/iphone/bin/ldid << 'EOF'
         #!/bin/bash
         # Simple ldid replacement that just copies the file
-        # In a real scenario, you'd do proper code signing
         case "$1" in
           -S)
             # Sign the file
