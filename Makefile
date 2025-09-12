@@ -7,7 +7,7 @@ include $(THEOS)/makefiles/common.mk
 TWEAK_NAME = RTMPCameraReplacer
 
 RTMPCameraReplacer_FILES = Tweak.x
-RTMPCameraReplacer_CFLAGS = -fobjc-arc
+RTMPCameraReplacer_CFLAGS = -fobjc-arc -Wno-deprecated-declarations
 RTMPCameraReplacer_FRAMEWORKS = UIKit MediaPlayer AVFoundation
 
 include $(THEOS_MAKE_PATH)/tweak.mk
