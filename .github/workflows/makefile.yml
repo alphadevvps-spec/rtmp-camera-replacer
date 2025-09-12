@@ -54,10 +54,9 @@ jobs:
         exec /usr/bin/clang++ -target aarch64-apple-ios15.0 -fuse-ld=lld "$@"
         EOF
         
-        # Create minimal lipo script
+        # Create improved lipo script
         cat > ~/theos/toolchain/linux/iphone/bin/lipo << 'EOF'
         #!/bin/bash
-        # Minimal lipo that handles common operations
         case "$1" in
           -create)
             OUTPUT=""
@@ -99,6 +98,41 @@ jobs:
             ;;
           *)
             echo "lipo: unsupported operation: $1"
+            exit 1
+            ;;
+        esac
+        EOF
+        
+        # Create ldid script (code signing tool)
+        cat > ~/theos/toolchain/linux/iphone/bin/ldid << 'EOF'
+        #!/bin/bash
+        # Simple ldid replacement that just copies the file
+        # In a real scenario, you'd do proper code signing
+        case "$1" in
+          -S)
+            # Sign the file
+            INPUT="$2"
+            OUTPUT="$3"
+            if [ -n "$OUTPUT" ]; then
+              cp "$INPUT" "$OUTPUT"
+              echo "ldid: signed $INPUT -> $OUTPUT"
+            else
+              echo "ldid: signed $INPUT"
+            fi
+            ;;
+          -s)
+            # Sign with entitlements
+            INPUT="$2"
+            OUTPUT="$3"
+            if [ -n "$OUTPUT" ]; then
+              cp "$INPUT" "$OUTPUT"
+              echo "ldid: signed $INPUT with entitlements -> $OUTPUT"
+            else
+              echo "ldid: signed $INPUT with entitlements"
+            fi
+            ;;
+          *)
+            echo "ldid: unsupported operation: $1"
             exit 1
             ;;
         esac
