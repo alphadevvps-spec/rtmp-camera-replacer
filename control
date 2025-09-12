@@ -1,0 +1,9 @@
+Package: com.yourname.rtmpcamerareplacer
+Name: RTMP Camera Replacer
+Version: 1.0-1
+Architecture: iphoneos-arm
+Description: Replaces iOS camera feed with RTMP stream
+Maintainer: Your Name <your.email@example.com>
+Author: Your Name
+Section: Tweaks
+Depends: mobilesubstrate, preferenceloader
