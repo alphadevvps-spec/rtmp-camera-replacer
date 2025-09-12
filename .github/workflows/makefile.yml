@@ -25,11 +25,9 @@ jobs:
         unzip master.zip
         sudo cp -r sdks-master/iPhoneOS16.5.sdk ~/theos/sdks/
         sudo chown -R $USER:$USER ~/theos/sdks
-        wget https://github.com/theos/toolchain/archive/refs/heads/master.zip
-        unzip master.zip
-        sudo cp -r toolchain-master/linux/iphone/* ~/theos/toolchain/
-        sudo chown -R $USER:$USER ~/theos/toolchain
-        sudo chmod +x ~/theos/toolchain/linux/iphone/bin/*
+              # Install toolchain
+        cd ~/theos
+        sudo ./install.sh
         echo "THEOS=~/theos" >> $GITHUB_ENV
         echo "PATH=~/theos/bin:$PATH" >> $GITHUB_ENV
         
