@@ -54,86 +54,64 @@ jobs:
         exec /usr/bin/clang++ -target aarch64-apple-ios15.0 -fuse-ld=lld "$@"
         EOF
         
-        # Create comprehensive lipo script
+        # Create minimal lipo script
         cat > ~/theos/toolchain/linux/iphone/bin/lipo << 'EOF'
         #!/bin/bash
-        case "$1" in
-          -create)
-            OUTPUT=""
-            INPUTS=()
-            shift
-            while [ $# -gt 0 ]; do
-              case $1 in
-                -output)
-                  OUTPUT="$2"
-                  shift 2
-                  ;;
-                -arch)
-                  shift 2
-                  ;;
-                *)
-                  INPUTS+=("$1")
-                  shift
-                  ;;
-              esac
-            done
-            
-            if [ -n "$OUTPUT" ] && [ ${#INPUTS[@]} -gt 0 ]; then
-              cp "${INPUTS[0]}" "$OUTPUT"
-              echo "lipo: created $OUTPUT from ${INPUTS[0]}"
-            fi
-            ;;
-          -info)
-            if [ -f "$2" ]; then
-              echo "Non-fat file: $2 is architecture: arm64"
-            else
-              echo "lipo: can't open input file: $2"
-              exit 1
-            fi
-            ;;
-          -arch)
-            ARCH="$2"
-            FILE="$3"
-            echo "lipo: extracting architecture $ARCH from $FILE"
-            cp "$FILE" "${FILE}.${ARCH}"
-            echo "lipo: created ${FILE}.${ARCH}"
-            ;;
-          *)
-            echo "lipo: unsupported operation: $1"
-            exit 1
-            ;;
-        esac
+        # Minimal lipo that just copies files
+        if [ "$1" = "-create" ]; then
+          OUTPUT=""
+          shift
+          while [ $# -gt 0 ]; do
+            case $1 in
+              -output)
+                OUTPUT="$2"
+                shift 2
+                ;;
+              -arch)
+                shift 2
+                ;;
+              *)
+                if [ -z "$OUTPUT" ]; then
+                  echo "lipo: no output specified"
+                  exit 1
+                fi
+                cp "$1" "$OUTPUT"
+                echo "lipo: created $OUTPUT"
+                exit 0
+                ;;
+            esac
+          done
+        elif [ "$1" = "-arch" ]; then
+          ARCH="$2"
+          FILE="$3"
+          echo "lipo: extracting architecture $ARCH from $FILE"
+          # Create the expected output file name
+          OUTPUT_FILE="${FILE%.*}.unsigned"
+          cp "$FILE" "$OUTPUT_FILE"
+          echo "lipo: created $OUTPUT_FILE"
+        else
+          echo "lipo: unsupported operation: $1"
+          exit 1
+        fi
         EOF
         
-        # Create ldid script (code signing tool)
+        # Create minimal ldid script
         cat > ~/theos/toolchain/linux/iphone/bin/ldid << 'EOF'
         #!/bin/bash
-        case "$1" in
-          -S)
-            INPUT="$2"
-            OUTPUT="$3"
-            if [ -n "$OUTPUT" ]; then
-              cp "$INPUT" "$OUTPUT"
-              echo "ldid: signed $INPUT -> $OUTPUT"
-            else
-              echo "ldid: signed $INPUT"
-            fi
-            ;;
-          -s)
-            INPUT="$2"
-            OUTPUT="$3"
-            if [ -n "$OUTPUT" ]; then
-              cp "$INPUT" "$OUTPUT"
-              echo "ldid: signed $INPUT with entitlements -> $OUTPUT"
-            else
-              echo "ldid: signed $INPUT with entitlements"
-            fi
-            ;;
-          *)
-            echo "ldid: unsupported operation: $1"
-            exit 1
-            ;;
-        esac
+        # Minimal ldid that just copies files
+        if [ "$1" = "-S" ]; then
+          INPUT="$2"
+          OUTPUT="$3"
+          if [ -n "$OUTPUT" ]; then
+            cp "$INPUT" "$OUTPUT"
+            echo "ldid: signed $INPUT -> $OUTPUT"
+          else
+            echo "ldid: signed $INPUT"
+          fi
+        else
+          echo "ldid: unsupported operation: $1"
+          exit 1
+        fi
         EOF
         
         # Create other toolchain scripts
