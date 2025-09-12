@@ -3,7 +3,7 @@ Name: RTMP Camera Replacer
 Version: 1.0-1
 Architecture: iphoneos-arm
 Description: Replaces iOS camera feed with RTMP stream
-Maintainer: Your Name <your.email@example.com>
+Maintainer: ax3l
 Author: Your Name
 Section: Tweaks
 Depends: mobilesubstrate, preferenceloader
