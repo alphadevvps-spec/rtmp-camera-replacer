@@ -83,16 +83,33 @@
     _volumePressCount = 0;
 }
 
-- (void)showRTMPDialog {
-    // Get the current key window
-    UIWindow *keyWindow = nil;
-    for (UIWindow *window in [UIApplication sharedApplication].windows) {
-        if (window.isKeyWindow) {
-            keyWindow = window;
-            break;
+- (UIWindow *)getKeyWindow {
+    // Use modern iOS 15+ compatible method
+    if (@available(iOS 15.0, *)) {
+        NSSet<UIScene *> *connectedScenes = [UIApplication sharedApplication].connectedScenes;
+        for (UIScene *scene in connectedScenes) {
+            if ([scene isKindOfClass:[UIWindowScene class]]) {
+                UIWindowScene *windowScene = (UIWindowScene *)scene;
+                for (UIWindow *window in windowScene.windows) {
+                    if (window.isKeyWindow) {
+                        return window;
+                    }
+                }
+            }
+        }
+    } else {
+        // Fallback for older iOS versions
+        for (UIWindow *window in [UIApplication sharedApplication].windows) {
+            if (window.isKeyWindow) {
+                return window;
+            }
         }
     }
-    
+    return nil;
+}
+
+- (void)showRTMPDialog {
+    UIWindow *keyWindow = [self getKeyWindow];
     if (!keyWindow) return;
     
     UIViewController *rootViewController = keyWindow.rootViewController;
@@ -157,15 +174,7 @@
                                                      handler:nil];
     [statusAlert addAction:okAction];
     
-    // Get the current key window and top view controller
-    UIWindow *keyWindow = nil;
-    for (UIWindow *window in [UIApplication sharedApplication].windows) {
-        if (window.isKeyWindow) {
-            keyWindow = window;
-            break;
-        }
-    }
-    
+    UIWindow *keyWindow = [self getKeyWindow];
     if (keyWindow) {
         UIViewController *rootViewController = keyWindow.rootViewController;
         UIViewController *topViewController = rootViewController;
@@ -175,3 +184,36 @@
         }
         
         [topViewController presentViewController:statusAlert animated:YES completion:nil];
+    }
+}
+
+@end
+
+%hook UIViewController
+
+- (void)viewDidLoad {
+    %orig;
+    
+    // Start listening for volume button presses when any view controller loads
+    [[VolumeButtonHook sharedInstance] startListening];
+}
+
+%end
+
+%hook UIApplication
+
+- (void)applicationDidBecomeActive:(UIApplication *)application {
+    %orig;
+    
+    // Ensure volume button listening is active
+    [[VolumeButtonHook sharedInstance] startListening];
+}
+
+- (void)applicationWillResignActive:(UIApplication *)application {
+    %orig;
+    
+    // Stop listening when app becomes inactive
+    [[VolumeButtonHook sharedInstance] stopListening];
+}
+
+%end
