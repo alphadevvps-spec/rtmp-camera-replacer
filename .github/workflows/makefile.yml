@@ -31,47 +31,37 @@ jobs:
         sudo cp -r sdks-master/iPhoneOS16.5.sdk ~/theos/sdks/
         sudo chown -R $USER:$USER ~/theos/sdks
         
-        # Install proper cross-compilation toolchain
-        sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+        # Install LLVM tools including LLD
+        sudo apt-get install -y clang llvm lld
         
-        # Create proper toolchain directory structure
+        # Create toolchain directory
         mkdir -p ~/theos/toolchain/linux/iphone/bin
         
-        # Create wrapper scripts for cross-compilation
+        # Create custom linker script using LLD
+        cat > ~/theos/toolchain/linux/iphone/bin/ld << 'EOF'
+        #!/bin/bash
+        # Use LLD linker which supports more targets
+        exec /usr/bin/ld.lld "$@"
+        EOF
+        
+        # Create clang script with LLD
         cat > ~/theos/toolchain/linux/iphone/bin/clang << 'EOF'
         #!/bin/bash
-        exec /usr/bin/clang -target aarch64-apple-ios15.0 "$@"
+        exec /usr/bin/clang -target aarch64-apple-ios15.0 -fuse-ld=lld "$@"
         EOF
         
         cat > ~/theos/toolchain/linux/iphone/bin/clang++ << 'EOF'
         #!/bin/bash
-        exec /usr/bin/clang++ -target aarch64-apple-ios15.0 "$@"
+        exec /usr/bin/clang++ -target aarch64-apple-ios15.0 -fuse-ld=lld "$@"
         EOF
         
-        cat > ~/theos/toolchain/linux/iphone/bin/ld << 'EOF'
+        # Create other toolchain scripts
+        for tool in ar ranlib strip nm; do
+          cat > ~/theos/toolchain/linux/iphone/bin/$tool << EOF
         #!/bin/bash
-        exec /usr/bin/aarch64-linux-gnu-ld "$@"
+        exec /usr/bin/$tool "\$@"
         EOF
-        
-        cat > ~/theos/toolchain/linux/iphone/bin/ar << 'EOF'
-        #!/bin/bash
-        exec /usr/bin/aarch64-linux-gnu-ar "$@"
-        EOF
-        
-        cat > ~/theos/toolchain/linux/iphone/bin/ranlib << 'EOF'
-        #!/bin/bash
-        exec /usr/bin/aarch64-linux-gnu-ranlib "$@"
-        EOF
-        
-        cat > ~/theos/toolchain/linux/iphone/bin/strip << 'EOF'
-        #!/bin/bash
-        exec /usr/bin/aarch64-linux-gnu-strip "$@"
-        EOF
-        
-        cat > ~/theos/toolchain/linux/iphone/bin/nm << 'EOF'
-        #!/bin/bash
-        exec /usr/bin/aarch64-linux-gnu-nm "$@"
-        EOF
+        done
         
         # Make all scripts executable
         chmod +x ~/theos/toolchain/linux/iphone/bin/*
