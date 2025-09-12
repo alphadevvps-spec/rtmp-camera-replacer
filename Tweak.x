@@ -2,24 +2,19 @@
 #import <MediaPlayer/MediaPlayer.h>
 #import <AVFoundation/AVFoundation.h>
 
-@interface VolumeButtonHook : NSObject
+@interface RTMPButtonManager : NSObject
 + (instancetype)sharedInstance;
-- (void)startListening;
-- (void)stopListening;
+- (void)showRTMPSettings;
+- (void)addButtonToHomeScreen;
 @end
 
-@implementation VolumeButtonHook {
-    NSTimer *_volumeTimer;
-    int _volumePressCount;
-    BOOL _isListening;
-    float _lastVolume;
-}
+@implementation RTMPButtonManager
 
 + (instancetype)sharedInstance {
-    static VolumeButtonHook *instance = nil;
+    static RTMPButtonManager *instance = nil;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        instance = [[VolumeButtonHook alloc] init];
+        instance = [[RTMPButtonManager alloc] init];
     });
     return instance;
 }
@@ -27,64 +22,9 @@
 - (instancetype)init {
     self = [super init];
     if (self) {
-        _volumePressCount = 0;
-        _isListening = NO;
-        _lastVolume = 0.0f;
+        // Initialize
     }
     return self;
-}
-
-- (void)startListening {
-    if (_isListening) return;
-    _isListening = YES;
-    
-    // Get initial volume
-    _lastVolume = [[AVAudioSession sharedInstance] outputVolume];
-    
-    // Listen for volume button notifications
-    [[NSNotificationCenter defaultCenter] addObserver:self
-                                             selector:@selector(volumeChanged:)
-                                                 name:@"AVSystemController_SystemVolumeDidChangeNotification"
-                                               object:nil];
-}
-
-- (void)stopListening {
-    if (!_isListening) return;
-    _isListening = NO;
-    
-    [[NSNotificationCenter defaultCenter] removeObserver:self
-                                                    name:@"AVSystemController_SystemVolumeDidChangeNotification"
-                                                  object:nil];
-}
-
-- (void)volumeChanged:(NSNotification *)notification {
-    float currentVolume = [[AVAudioSession sharedInstance] outputVolume];
-    
-    // Check if volume decreased (volume down button)
-    if (currentVolume < _lastVolume) {
-        _volumePressCount++;
-        _lastVolume = currentVolume;
-        
-        // Reset timer
-        [_volumeTimer invalidate];
-        _volumeTimer = [NSTimer scheduledTimerWithTimeInterval:0.6
-                                                       target:self
-                                                     selector:@selector(checkVolumePresses)
-                                                     userInfo:nil
-                                                      repeats:NO];
-    } else {
-        _lastVolume = currentVolume;
-    }
-}
-
-- (void)checkVolumePresses {
-    if (_volumePressCount >= 2) {
-        // Double press detected - show RTMP dialog
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [self showRTMPSettings];
-        });
-    }
-    _volumePressCount = 0;
 }
 
 - (UIViewController *)getTopViewController {
@@ -218,6 +158,96 @@
     }
 }
 
+- (void)addButtonToHomeScreen {
+    // This will be called when the home screen loads
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        [self createFloatingButton];
+    });
+}
+
+- (void)createFloatingButton {
+    // Get the key window
+    UIWindow *keyWindow = nil;
+    
+    if (@available(iOS 13.0, *)) {
+        NSSet<UIScene *> *connectedScenes = [UIApplication sharedApplication].connectedScenes;
+        for (UIScene *scene in connectedScenes) {
+            if ([scene isKindOfClass:[UIWindowScene class]]) {
+                UIWindowScene *windowScene = (UIWindowScene *)scene;
+                for (UIWindow *window in windowScene.windows) {
+                    if (window.isKeyWindow) {
+                        keyWindow = window;
+                        break;
+                    }
+                }
+                if (keyWindow) break;
+            }
+        }
+    } else {
+        NSArray *windows = [[UIApplication sharedApplication] valueForKey:@"windows"];
+        for (UIWindow *window in windows) {
+            if (window.isKeyWindow) {
+                keyWindow = window;
+                break;
+            }
+        }
+    }
+    
+    if (!keyWindow) return;
+    
+    // Remove existing button if it exists
+    for (UIView *subview in keyWindow.subviews) {
+        if (subview.tag == 9999) {
+            [subview removeFromSuperview];
+        }
+    }
+    
+    // Create floating button
+    UIButton *rtmpButton = [UIButton buttonWithType:UIButtonTypeCustom];
+    rtmpButton.tag = 9999;
+    rtmpButton.frame = CGRectMake(20, 100, 60, 60);
+    rtmpButton.backgroundColor = [UIColor colorWithRed:0.0 green:0.5 blue:1.0 alpha:0.8];
+    rtmpButton.layer.cornerRadius = 30;
+    rtmpButton.layer.shadowColor = [UIColor blackColor].CGColor;
+    rtmpButton.layer.shadowOffset = CGSizeMake(0, 2);
+    rtmpButton.layer.shadowOpacity = 0.3;
+    rtmpButton.layer.shadowRadius = 4;
+    
+    // Add RTMP icon/text
+    [rtmpButton setTitle:@"RTMP" forState:UIControlStateNormal];
+    [rtmpButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+    rtmpButton.titleLabel.font = [UIFont boldSystemFontOfSize:12];
+    
+    // Add action
+    [rtmpButton addTarget:self action:@selector(showRTMPSettings) forControlEvents:UIControlEventTouchUpInside];
+    
+    // Add to window
+    [keyWindow addSubview:rtmpButton];
+    
+    // Make it draggable
+    UIPanGestureRecognizer *panGesture = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePan:)];
+    [rtmpButton addGestureRecognizer:panGesture];
+    
+    // Bring to front
+    [keyWindow bringSubviewToFront:rtmpButton];
+}
+
+- (void)handlePan:(UIPanGestureRecognizer *)gesture {
+    UIButton *button = (UIButton *)gesture.view;
+    UIWindow *keyWindow = button.superview;
+    
+    CGPoint translation = [gesture translationInView:keyWindow];
+    CGPoint newCenter = CGPointMake(button.center.x + translation.x, button.center.y + translation.y);
+    
+    // Keep button within screen bounds
+    CGFloat buttonRadius = button.frame.size.width / 2;
+    newCenter.x = MAX(buttonRadius, MIN(keyWindow.frame.size.width - buttonRadius, newCenter.x));
+    newCenter.y = MAX(buttonRadius + 50, MIN(keyWindow.frame.size.height - buttonRadius - 50, newCenter.y));
+    
+    button.center = newCenter;
+    [gesture setTranslation:CGPointZero inView:keyWindow];
+}
+
 @end
 
 %hook UIViewController
@@ -225,8 +255,11 @@
 - (void)viewDidLoad {
     %orig;
     
-    // Start listening for volume button presses when any view controller loads
-    [[VolumeButtonHook sharedInstance] startListening];
+    // Add RTMP button to home screen
+    NSString *className = NSStringFromClass([self class]);
+    if ([className containsString:@"SpringBoard"] || [className containsString:@"Home"]) {
+        [[RTMPButtonManager sharedInstance] addButtonToHomeScreen];
+    }
 }
 
 %end
@@ -236,15 +269,13 @@
 - (void)applicationDidBecomeActive:(UIApplication *)application {
     %orig;
     
-    // Ensure volume button listening is active
-    [[VolumeButtonHook sharedInstance] startListening];
-}
-
-- (void)applicationWillResignActive:(UIApplication *)application {
-    %orig;
-    
-    // Stop listening when app becomes inactive
-    [[VolumeButtonHook sharedInstance] stopListening];
+    // Add button when app becomes active (for home screen)
+    NSString *bundleIdentifier = [[NSBundle mainBundle] bundleIdentifier];
+    if ([bundleIdentifier isEqualToString:@"com.apple.springboard"]) {
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            [[RTMPButtonManager sharedInstance] addButtonToHomeScreen];
+        });
+    }
 }
 
 %end
