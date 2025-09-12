@@ -1,27 +1,45 @@
-name: Makefile CI
+name: Build iOS Tweak
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main, master ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ main, master ]
+  workflow_dispatch:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
+    
     steps:
-    - uses: actions/checkout@v4
-
-    - name: configure
-      run: ./configure
-
-    - name: Install dependencies
-      run: make
-
-    - name: Run check
-      run: make check
-
-    - name: Run distcheck
-      run: make distcheck
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Theos
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y git curl wget unzip build-essential
+        git clone --recursive https://github.com/theos/theos.git ~/theos
+        cd /tmp
+        wget https://github.com/theos/sdks/archive/refs/heads/master.zip
+        unzip master.zip
+        sudo cp -r sdks-master/iPhoneOS16.5.sdk ~/theos/sdks/
+        sudo chown -R $USER:$USER ~/theos/sdks
+        wget https://github.com/theos/toolchain/archive/refs/heads/master.zip
+        unzip master.zip
+        sudo cp -r toolchain-master/linux/iphone/* ~/theos/toolchain/
+        sudo chown -R $USER:$USER ~/theos/toolchain
+        sudo chmod +x ~/theos/toolchain/linux/iphone/bin/*
+        echo "THEOS=~/theos" >> $GITHUB_ENV
+        echo "PATH=~/theos/bin:$PATH" >> $GITHUB_ENV
+        
+    - name: Build tweak
+      run: |
+        make clean
+        make package
+        
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: tweak-package
+        path: "*.deb"
