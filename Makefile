@@ -1,6 +1,6 @@
 ARCHS = arm64
 TARGET = iphone:clang:16.5:15.0
-INSTALL_TARGET_PROCESSES = Camera
+INSTALL_TARGET_PROCESSES = SpringBoard
 
 include $(THEOS)/makefiles/common.mk
 
@@ -8,6 +8,6 @@ TWEAK_NAME = RTMPCameraReplacer
 
 RTMPCameraReplacer_FILES = Tweak.x
 RTMPCameraReplacer_CFLAGS = -fobjc-arc
-RTMPCameraReplacer_FRAMEWORKS = UIKit MediaPlayer AVFoundation IOKit
+RTMPCameraReplacer_FRAMEWORKS = UIKit MediaPlayer AVFoundation
 
 include $(THEOS_MAKE_PATH)/tweak.mk
