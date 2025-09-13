@@ -257,9 +257,12 @@
 - (void)viewDidLoad {
     %orig;
     
-    // Add RTMP button to home screen
+    // Add RTMP button to home screen - try multiple class names
     NSString *className = NSStringFromClass([self class]);
-    if ([className containsString:@"SpringBoard"] || [className containsString:@"Home"]) {
+    if ([className containsString:@"SpringBoard"] || 
+        [className containsString:@"Home"] || 
+        [className containsString:@"SB"] ||
+        [className containsString:@"HomeScreen"]) {
         [[RTMPButtonManager sharedInstance] addButtonToHomeScreen];
     }
 }
@@ -275,6 +278,22 @@
     NSString *bundleIdentifier = [[NSBundle mainBundle] bundleIdentifier];
     if ([bundleIdentifier isEqualToString:@"com.apple.springboard"]) {
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            [[RTMPButtonManager sharedInstance] addButtonToHomeScreen];
+        });
+    }
+}
+
+%end
+
+// Hook SpringBoard directly
+%hook NSObject
+
+- (void)applicationDidFinishLaunching:(id)application {
+    %orig;
+    
+    NSString *bundleIdentifier = [[NSBundle mainBundle] bundleIdentifier];
+    if ([bundleIdentifier isEqualToString:@"com.apple.springboard"]) {
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
             [[RTMPButtonManager sharedInstance] addButtonToHomeScreen];
         });
     }
