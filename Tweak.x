@@ -234,18 +234,20 @@
 
 - (void)handlePan:(UIPanGestureRecognizer *)gesture {
     UIButton *button = (UIButton *)gesture.view;
-    UIWindow *keyWindow = button.superview;
+    UIView *superview = button.superview;
     
-    CGPoint translation = [gesture translationInView:keyWindow];
+    if (!superview) return;
+    
+    CGPoint translation = [gesture translationInView:superview];
     CGPoint newCenter = CGPointMake(button.center.x + translation.x, button.center.y + translation.y);
     
     // Keep button within screen bounds
     CGFloat buttonRadius = button.frame.size.width / 2;
-    newCenter.x = MAX(buttonRadius, MIN(keyWindow.frame.size.width - buttonRadius, newCenter.x));
-    newCenter.y = MAX(buttonRadius + 50, MIN(keyWindow.frame.size.height - buttonRadius - 50, newCenter.y));
+    newCenter.x = MAX(buttonRadius, MIN(superview.frame.size.width - buttonRadius, newCenter.x));
+    newCenter.y = MAX(buttonRadius + 50, MIN(superview.frame.size.height - buttonRadius - 50, newCenter.y));
     
     button.center = newCenter;
-    [gesture setTranslation:CGPointZero inView:keyWindow];
+    [gesture setTranslation:CGPointZero inView:superview];
 }
 
 @end
