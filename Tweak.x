@@ -5,7 +5,7 @@
 @interface RTMPButtonManager : NSObject
 + (instancetype)sharedInstance;
 - (void)showRTMPSettings;
-- (void)addButtonToHomeScreen;
+- (void)addButtonToCurrentApp;
 @end
 
 @implementation RTMPButtonManager
@@ -158,14 +158,7 @@
     }
 }
 
-- (void)addButtonToHomeScreen {
-    // This will be called when the home screen loads
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        [self createFloatingButton];
-    });
-}
-
-- (void)createFloatingButton {
+- (void)addButtonToCurrentApp {
     // Get the key window
     UIWindow *keyWindow = nil;
     
@@ -257,14 +250,10 @@
 - (void)viewDidLoad {
     %orig;
     
-    // Add RTMP button to home screen - try multiple class names
-    NSString *className = NSStringFromClass([self class]);
-    if ([className containsString:@"SpringBoard"] || 
-        [className containsString:@"Home"] || 
-        [className containsString:@"SB"] ||
-        [className containsString:@"HomeScreen"]) {
-        [[RTMPButtonManager sharedInstance] addButtonToHomeScreen];
-    }
+    // Add RTMP button to any app that loads
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        [[RTMPButtonManager sharedInstance] addButtonToCurrentApp];
+    });
 }
 
 %end
@@ -274,29 +263,10 @@
 - (void)applicationDidBecomeActive:(UIApplication *)application {
     %orig;
     
-    // Add button when app becomes active (for home screen)
-    NSString *bundleIdentifier = [[NSBundle mainBundle] bundleIdentifier];
-    if ([bundleIdentifier isEqualToString:@"com.apple.springboard"]) {
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            [[RTMPButtonManager sharedInstance] addButtonToHomeScreen];
-        });
-    }
-}
-
-%end
-
-// Hook SpringBoard directly
-%hook NSObject
-
-- (void)applicationDidFinishLaunching:(id)application {
-    %orig;
-    
-    NSString *bundleIdentifier = [[NSBundle mainBundle] bundleIdentifier];
-    if ([bundleIdentifier isEqualToString:@"com.apple.springboard"]) {
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            [[RTMPButtonManager sharedInstance] addButtonToHomeScreen];
-        });
-    }
+    // Add button when any app becomes active
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        [[RTMPButtonManager sharedInstance] addButtonToCurrentApp];
+    });
 }
 
 %end
